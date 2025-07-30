@@ -5,14 +5,89 @@ import datetime
 import os, json
 from tqdm import tqdm
 import argparse
+import requests
 from src.api.api import set_ark_key
 from src.eval.LoCoMo.evaluation import eval_question_answering
 from src.eval.LoCoMo.evaluation_stats import analyze_aggr_acc
 from src.eval.LoCoMo.utils.ark_utils import get_ark_answers
 from src.utils.time import get_duration, format_duration
-from src.utils.log import init_logger, log_info
+from src.utils.log import init_logger, log_info, log_error
 
 import numpy as np
+
+def download_locomo_data(data_file_path):
+    """
+    自动下载LoCoMo数据集
+    
+    Args:
+        data_file_path (str): 数据文件保存路径
+    
+    Returns:
+        bool: 下载是否成功
+    """
+    # 确保目录存在
+    os.makedirs(os.path.dirname(data_file_path), exist_ok=True)
+    
+    # 多个下载源
+    urls = [
+        "https://raw.githubusercontent.com/snap-research/locomo/main/data/locomo10.json",
+        "https://github.com/snap-research/locomo/raw/main/data/locomo10.json"
+    ]
+    
+    # 设置代理（如果需要）
+    proxies = None
+    if os.environ.get('HTTP_PROXY'):
+        proxies = {
+            'http': os.environ.get('HTTP_PROXY'),
+            'https': os.environ.get('HTTPS_PROXY', os.environ.get('HTTP_PROXY'))
+        }
+    
+    # 设置请求头，模拟浏览器访问
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+    }
+    
+    for i, url in enumerate(urls):
+        try:
+            log_info(f"尝试下载源 {i+1}/{len(urls)}: {url}")
+            
+            # 使用requests下载文件
+            response = requests.get(url, stream=True, proxies=proxies, headers=headers, timeout=30)
+            response.raise_for_status()  # 检查HTTP错误
+            
+            # 获取文件大小
+            total_size = int(response.headers.get('content-length', 0))
+            
+            # 使用tqdm显示下载进度
+            with open(data_file_path, 'wb') as f:
+                with tqdm(total=total_size, unit='B', unit_scale=True, desc=f"下载进度 (源 {i+1})") as pbar:
+                    for chunk in response.iter_content(chunk_size=8192):
+                        if chunk:
+                            f.write(chunk)
+                            pbar.update(len(chunk))
+            
+            log_info("LoCoMo数据集下载完成")
+            return True
+            
+        except requests.exceptions.ConnectionError as e:
+            log_info(f"网络连接失败 (源 {i+1}): {str(e)}")
+            if i < len(urls) - 1:
+                log_info("尝试下一个下载源...")
+            continue
+        except requests.exceptions.Timeout as e:
+            log_info(f"下载超时 (源 {i+1}): {str(e)}")
+            if i < len(urls) - 1:
+                log_info("尝试下一个下载源...")
+            continue
+        except Exception as e:
+            log_info(f"下载失败 (源 {i+1}): {str(e)}")
+            if i < len(urls) - 1:
+                log_info("尝试下一个下载源...")
+            continue
+    
+    log_info("所有下载源都失败了，请手动下载数据文件")
+    log_info("手动下载链接: https://github.com/snap-research/locomo/blob/main/data/locomo10.json")
+    return False
 
 def parse_args():
 
@@ -70,6 +145,17 @@ def main():
     set_ark_key()
     log_info("ARK API密钥已设置")
 
+    # 检查数据文件是否存在，如果不存在则自动下载
+    if not os.path.exists(args.data_file):
+        log_info(f"数据文件不存在: {args.data_file}")
+        log_info("尝试自动下载LoCoMo数据集...")
+        
+        if download_locomo_data(args.data_file):
+            log_info("数据文件下载成功")
+        else:
+            log_error("数据文件下载失败，请手动下载或检查网络连接")
+            return
+    
     # load conversations
     log_info("开始加载数据文件: %s" % args.data_file)
     samples = json.load(open(args.data_file))

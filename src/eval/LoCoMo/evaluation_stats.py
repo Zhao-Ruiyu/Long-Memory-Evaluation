@@ -2,6 +2,7 @@ import os, json
 import math
 from tqdm import tqdm
 from collections import defaultdict
+from src.utils.log import log_info
 
 
 def get_conversation_lengths(data, encoder=None):
@@ -119,16 +120,19 @@ def analyze_aggr_acc(ann_file, in_file, out_file, model_name, metric_key, encode
     total_v = 0
     # for k, v in total_counts.items():
     keys = [4, 1, 2, 3, 5]
+    log_info("Total number of questions and corresponding accuracy in each category:")
     for k in keys:
         v = total_counts[k]
         if float(v) == 0.0:
-            print("No questions found in category %s" % k)
+            log_info("No questions found in category %s" % k)
         else:
-            print(k, v, acc_counts[k], round(float(acc_counts[k])/v, 3))
+            accuracy = round(float(acc_counts[k])/v, 3)
+            log_info(f"{k} {v} {acc_counts[k]} {accuracy}")
         total_v += acc_counts[k]
         total_k += v
 
-    print("Overall accuracy: ", round(float(total_v)/total_k, 3))
+    overall_accuracy = round(float(total_v)/total_k, 3)
+    log_info(f"Overall accuracy: {overall_accuracy}")
 
     # print("Total number of questions and corresponding accuracy by memory")
     # keys = list(memory_counts_og.keys())
@@ -149,16 +153,18 @@ def analyze_aggr_acc(ann_file, in_file, out_file, model_name, metric_key, encode
 
     if rag:
         results_dict[model_name]['recall_by_category'] = {k: v/total_counts[k] for k, v in recall_by_category.items()}
-        print("Category and corresponding recall accuracy in each category: ")
+        log_info("Category and corresponding recall accuracy in each category:")
         # for k, v in recall_by_category.items():
         keys = [4, 1, 2, 3, 5]
         for k in keys:
             v = recall_by_category[k]
             if float(total_counts[k]) == 0.0:
-                print("No questions found in category %s" % k)
+                log_info("No questions found in category %s" % k)
             else:
-                print(k, round(float(v)/total_counts[k], 3))
-        print("Overall recall accuracy: ", sum(list(recall_by_category.values()))/sum(list(total_counts.values())))
+                recall_accuracy = round(float(v)/total_counts[k], 3)
+                log_info(f"{k} {recall_accuracy}")
+        overall_recall = sum(list(recall_by_category.values()))/sum(list(total_counts.values()))
+        log_info(f"Overall recall accuracy: {overall_recall}")
     else:
         results_dict[model_name]['category_counts_by_memory'] = memory_counts_og
         results_dict[model_name]['cum_accuracy_by_category_by_memory'] = memory_counts
