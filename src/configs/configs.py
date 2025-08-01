@@ -35,4 +35,10 @@ class Configs:
         # ARK模型ID配置
         self.ARK_DEEPSEEK_R1_MODEL = os.getenv("ARK_DEEPSEEK_R1_MODEL")
         self.ARK_DEEPSEEK_V3_MODEL = os.getenv("ARK_DEEPSEEK_V3_MODEL")
+
+        # 嵌入模型配置
+        self.EMBEDDINGS_MODEL = os.getenv("EMBEDDINGS_MODEL")
+
+# 创建全局配置实例
+configs = Configs()
         

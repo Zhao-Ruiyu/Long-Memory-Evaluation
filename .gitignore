@@ -1,75 +1,10 @@
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
+data/
+NV-Embed-v2/
+stella_en_400M_v5/
+.output/
+_pycache_/
+tests/
 
-# Virtual environments
-venv/
-env/
-ENV/
-env.bak/
-venv.bak/
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-
-# OS
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
-
-# Project specific
-outputs/
-*.log
-.env
-.env.local
-.env.production
-
-# API keys and sensitive data
-scripts/env.sh
-
-# Large files
-*.pkl
-*.pickle
-*.h5
-*.hdf5
-*.pth
-*.pt
-*.bin
-
-# Temporary files
-temp/
-tmp/
-*.tmp 
-
-# self file
-.outputs/
-
-*.txt
+*.env
 *.json
+*.pyc

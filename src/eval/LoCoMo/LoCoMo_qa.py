@@ -30,8 +30,8 @@ def download_locomo_data(data_file_path):
     
     # 多个下载源
     urls = [
-        "https://raw.githubusercontent.com/snap-research/locomo/main/data/locomo10.json",
-        "https://github.com/snap-research/locomo/raw/main/data/locomo10.json"
+        "https://github.com/snap-research/locomo/raw/main/data/locomo10.json",
+        "https://drive.google.com/file/d/1R66UxnE_13oihrnyDfvX3V3shULtI1hH/view?usp=drive_link"
     ]
     
     # 设置代理（如果需要）
@@ -207,5 +207,5 @@ def main():
     log_info("所有任务完成！")
     # encoder=tiktoken.encoding_for_model(args.model))
 
-
-main()
+if __name__ == "__main__":
+    main()
