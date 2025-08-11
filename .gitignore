@@ -8,3 +8,6 @@ tests/
 *.env
 *.json
 *.pyc
+
+NV-Embed-v2/
+stella_en_400M_v5/
