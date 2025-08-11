@@ -19,7 +19,10 @@ from tqdm import tqdm
 from src.configs import configs
 load_dotenv()
 
-client = OpenAI()
+client = OpenAI(
+    api_key=configs.ARK_API_KEY,
+    base_url="https://ark.cn-beijing.volces.com/api/v3"
+)
 
 ANSWER_PROMPT_TEMPLATE = Template(ANSWER_PROMPT)
 
@@ -34,11 +37,25 @@ def get_answer(question, speaker_1_user_id, speaker_1_memories, speaker_2_user_i
     )
 
     t1 = time.time()
-    response = client.chat.completions.create(
-        model=os.getenv("MODEL"), messages=[{"role": "system", "content": prompt}], temperature=0.0
-    )
-    t2 = time.time()
-    return response.choices[0].message.content, t2 - t1
+    try:
+        # 检查输入长度，如果超过限制则截断
+        max_length = 120000  # 留一些余量
+        if len(prompt) > max_length:
+            print(f"Warning: Prompt length {len(prompt)} exceeds limit, truncating to {max_length}")
+            prompt = prompt[:max_length]
+        
+        # 使用 ARK API 而不是标准的 OpenAI API
+        response = client.chat.completions.create(
+            model=configs.ARK_DEEPSEEK_V3_MODEL,
+            messages=[{"role": "system", "content": prompt}], 
+            temperature=0.0
+        )
+        t2 = time.time()
+        return response.choices[0].message.content, t2 - t1
+    except Exception as e:
+        print(f"Error in get_answer: {e}")
+        t2 = time.time()
+        return "Error occurred during processing", t2 - t1
 
 
 def prompt(state):
@@ -130,6 +147,14 @@ class LangMem:
         embedding_model = configs.EMBEDDINGS_MODEL
         model = configs.ARK_DEEPSEEK_V3_MODEL
 
+        # 检查是否有本地模型路径
+        local_model_path = "./stella_en_400M_v5"
+        if os.path.exists(local_model_path):
+            print(f"使用本地模型: {local_model_path}")
+            embedding_model = local_model_path
+        else:
+            print(f"使用远程模型: {embedding_model}")
+
         embeddings_model = HuggingFaceEmbeddings(
                 model_name=embedding_model,
                 model_kwargs={'device': 'cuda:7', 'trust_remote_code': True}
@@ -137,7 +162,7 @@ class LangMem:
             
         self.store = InMemoryStore(
             index={
-                "dims": 1536,
+                "dims": 1024,  # stella_en_400M_v5 的维度是1024
                 "embed": embeddings_model,
             }
         )
@@ -163,16 +188,33 @@ class LangMem:
         )
 
     def add_memory(self, message, config):
-        return self.agent.invoke({"messages": [{"role": "user", "content": message}]}, config=config)
+        try:
+            # 检查输入长度，如果超过限制则截断
+            max_length = 120000  # 留一些余量
+            if len(message) > max_length:
+                print(f"Warning: Message length {len(message)} exceeds limit, truncating to {max_length}")
+                message = message[:max_length]
+            
+            return self.agent.invoke({"messages": [{"role": "user", "content": message}]}, config=config)
+        except Exception as e:
+            print(f"Error in add_memory: {e}")
+            return {"messages": []}
 
     def search_memory(self, query, config):
+        t1 = time.time()
         try:
-            t1 = time.time()
+            # 检查输入长度，如果超过限制则截断
+            max_length = 120000  # 留一些余量
+            if len(query) > max_length:
+                print(f"Warning: Query length {len(query)} exceeds limit, truncating to {max_length}")
+                query = query[:max_length]
+            
             response = self.agent.invoke({"messages": [{"role": "user", "content": query}]}, config=config)
             t2 = time.time()
             return response["messages"][-1].content, t2 - t1
         except Exception as e:
             print(f"Error in search_memory: {e}")
+            t2 = time.time()
             return "", t2 - t1
 
 
